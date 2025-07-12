@@ -26,9 +26,9 @@ If you already have a bridge running within your local area, I would suggest tha
 
 ### Instructions
 
-1. Download this repo to your server ([link](git@github.com:Aveygo/LXMBridge.git))
+1. Download this repo to your server, ```git clone https://github.com/Aveygo/LXMBridge.git && cd LXMBridge```
 2. Download the requirements: ```pip install toml meshtastic pubsub dotenv RNS LXMF better_profanity peewee git+https://github.com/Aveygo/LXMKit.git```
-3. Edit ```config.toml``` with your configuration. Do not skip this step.
+3. Edit ```config.toml``` with your bridge configurations. Do not skip this step.
 4. Run ```python3 main.py``` and copy the delivery destination hash
 5. Message the node (the copied hash) with ```\help``` to get started.
 
