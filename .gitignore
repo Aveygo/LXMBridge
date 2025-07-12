@@ -1,7 +1,14 @@
 .env
 tmp/
 *__pycache__*
+LXMKit_library
 LXMKit_library/
 venv/
 bridge.log
 screen_log.log
+config.json
+bridge.env
+bridge.db
+screen_log.log
+LXMKit
+dev.toml

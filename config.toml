@@ -1,0 +1,50 @@
+# This is the config file for Meshtastic Bridge. Please go over EACH field.
+
+[bridge]
+# Your bridge name that will be used for the LXMF identity
+# and nomadnet site name. In general, try following the template:
+# NAME's CITY Meshtastic Bridge. eg, John's NY Meshtastic Bridge
+# You should also copy this name to your meshtastic node, and use the 
+# short name 'BRDG'.
+name = "My Epic Bridge" 
+
+# A random seed, please make sure to change. 
+# I recommend mashing your keyboard for ~30 keys.
+secret = "1234567890"
+
+# Your approximate location. This will be used within the
+# nomadnet site index page.
+location = "City (Country)"
+
+[meshtastic]
+# You have the choice of a remote OR
+remote = "" # eg "192.168.1.2"
+# a serial connection
+serial = "" # eg "/dev/ttyUSB0"
+# if both are defined, then the remote connection is attempted first
+# if both are left as is (empty), then an automatic serial connection is attempted
+# Is you are using serial, make sure that 'meshtastic --port /dev/ttyUSB0 --info' works
+
+[personal]
+# Your name or alias
+name = "Anonymous"
+
+# If you want to share your contacts, or have any other friendly remarks, you
+# can place your message here (can be nothing):
+custom_message = ""
+
+[sanity]
+# Now that you have completed configuring your bridge, change
+# the following field from 'false' to 'true'.
+i_did_a_good_job = false 
+
+[advanced]
+# The following fields are 'advanced' options. I recommend leaving them at their defaults
+
+# Message cooldown, in seconds (there's some exponential math-tricks so 
+# it's not as clear cut as a simple countdown)
+base_cooldown = 10
+
+# Reticulum identity re-announce timer in seconds. Please don't set this to 
+# something too short (no less than every 10 minutes) otherwise you'll spam the network.  
+announce = 1800

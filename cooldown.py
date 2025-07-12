@@ -1,10 +1,11 @@
 import time
+from config import config
 
 class AntiSpam:
     def __init__(self):
         self.in_cooldown = False
         self.history = []
-        self.min_cooldown = 10
+        self.min_cooldown = config['advanced']['base_cooldown']
         self.cooldown = self.min_cooldown
 
     def is_allowed(self):

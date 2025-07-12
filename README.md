@@ -20,18 +20,15 @@ I didn't really intend for anyone to run my script, but if you insist:
 2. A meshtastic node (eg, a Heltec V3) connected via serial / usb to the main host
 3. (optional, but recommended) an rnode-compatible device on the network
 
+### Please read
+
+If you already have a bridge running within your local area, I would suggest that you do not run another. Try to keep both networks clean for long term use.
+
 ### Instructions
 
 1. Download this repo to your server ([link](git@github.com:Aveygo/LXMBridge.git))
-2. Download the requirements: ```pip install meshtastic pubsub dotenv RNS LXMF better_profanity peewee git+https://github.com/Aveygo/LXMKit.git```
-3. Create a file with the name: ```.env```, and fill in the following details:
-
-```bash
-BRIDGE_NAME = "My Epic Bridge"      # Your bridge name here
-BRIDGE_SECRET = "1234567890"        # smash your keyboard or whatever to generate a key
-MESHTASTIC_REMOTE = "192.168.1.10"  # if using wifi, enter the meshtasic node's ip address
-```
-
+2. Download the requirements: ```pip install toml meshtastic pubsub dotenv RNS LXMF better_profanity peewee git+https://github.com/Aveygo/LXMKit.git```
+3. Edit ```config.toml``` with your configuration. Do not skip this step.
 4. Run ```python3 main.py``` and copy the delivery destination hash
-5. Message the node (the copied hash) ```\help``` to get started.
+5. Message the node (the copied hash) with ```\help``` to get started.
 

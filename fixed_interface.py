@@ -2,7 +2,10 @@
 The meshtastic devs, in their infinite wisdom, decided to put the meshtastic heartbeat on a separate thread.
 This is fine and dandy until the connection drops and the heartbeat fails, which does raise an exception, but is never caught.
 
-Here, we setup a communication channel that exposes an 'is_alive' method that can be  
+Here, we setup a communication channel that exposes an 'is_alive' method that can be used to reset the interface on error.
+Very useful over unstable wifi connections.
+
+If you are still having issues, you may need to switch to a serial (USB) connection to the meshtastic node.  
 """
 from log_f import logger
 import meshtastic
@@ -23,12 +26,12 @@ class Injector:
                 self.interface:meshtastic.tcp_interface.TCPInterface = self.interface_generator()
                 break
             except:
-                logger.warning("Interface creation failed, retrying...")
+                logger.warning("Meshtastic interface creation failed, retrying...")
             
             time.sleep(10)
 
         self.interface.sendHeartbeat = self.customsendHeartbeat
-        logger.info(f"Successfully injected custom heatbeat")
+        logger.info(f"Successfully injected custom heartbeat")
 
     def customsendHeartbeat(self):
         try:
