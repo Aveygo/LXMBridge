@@ -5,7 +5,7 @@ you probably want to be a bridge runner. Please see the readme for more details.
 
 Please note that some deliberate choices were made to preserve user privacy and prevent spam. 
 For instance, I only allowed users to message one another if they run the '/listen' command 
-on their respective networks.
+on their respective networks, or if they send a message to a listening node.
 
 Feel free to modify the code to suit your needs, but please remain respectful and remember the human. 
 """
@@ -116,6 +116,16 @@ class Bridge(LXMFApp):
 
             assert isinstance(message_source, bytes), "bad hash"
             assert isinstance(content, str), "bad message"
+
+            # Yet another hack - manually create a Message so we don't have to deal with Reticulum
+            source = list(router.delivery_destinations.values())[0]
+            message = Message(lxmessage, router, source, self.get_name)
+            router.announce(source.hash)
+
+            if config["advanced"]["developing"]:
+                message.author.send("Sorry, this bridge is currently under maintenance. Try again soon!")
+                return
+
             from_display_name = self.get_name(message_source)
             from_display_name = ''.join(c for c in from_display_name.decode('ascii', errors='ignore') if c.isprintable())
 
@@ -123,9 +133,6 @@ class Bridge(LXMFApp):
             
             if not self.LXMF_global_cooldown.try_perform_action():
                 logger.info("Blocked message due to cooldown")
-                source = list(router.delivery_destinations.values())[0]
-                router.announce(source.hash)
-                message = Message(lxmessage, router, source, self.get_name)
                 message.author.send(f"Sorry, a global cooldown has been activated to prevent spam from reaching the meshtastic network. Current cooldown timer is {int(self.LXMF_global_cooldown.cooldown)} seconds")
                 return
             
@@ -156,7 +163,7 @@ class Bridge(LXMFApp):
         This function handles messages that are sent to the bridge via LXMF.
         """
         logger.info(f'Received LXMF message: "{message.content}"')
-        user = LXMFUser.get_or_none(LXMFUser.identity_hash==base64.b64encode(message.author.identity_hash))
+        user:LXMFUser = LXMFUser.get_or_none(LXMFUser.identity_hash==base64.b64encode(message.author.identity_hash))
         if user is None:
             display_name = message.author.display_name
             user = LXMFUser.create(
@@ -166,23 +173,37 @@ class Bridge(LXMFApp):
                 log = "{}"
             )
 
-        log = json.loads(user.log)
+        else:
+            user.name = message.author.display_name # type: ignore
+            user.save()
+
+        log = json.loads(user.log) # type: ignore
+
+        if config["advanced"]["developing"]:
+            message.author.send("Sorry, this bridge is currently under maintenance. Try again soon!")
+            return
 
         if not message.content.startswith("/"):
             message.author.send("Please type '/help' to view available commands.")
+            return
 
         if message.content == "/help":
-            message.author.send("Commands:\n/help, shows available commands\n/listen, start receiving messages\n/stop, stop receiving messages\n/send <message>, send a message to the public channel\n/whoami, shows user configuration")
+            extra_commands = ""
+            if message.author.hash == config["personal"]["admin_address"]:
+                extra_commands = "\n\nAdmin commands are currently in development :)"
+
+            message.author.send("Commands:\n/help, shows available commands\n/listen, start receiving messages\n/stop, stop receiving messages\n/send <message>, send a message to the public channel\n/whoami, shows user configuration" + extra_commands)
+
             return
         
         if message.content == "/listen":
-            user.is_subscribed = True
+            user.is_subscribed = True # type: ignore
             user.save()
             message.author.send("Congrats! You are now listening to the public channel!")
             return
 
         if message.content == "/stop":
-            user.is_subscribed = False
+            user.is_subscribed = False # type: ignore
             user.save()
             message.author.send("Stopped sharing the public channel!")
             return
@@ -225,15 +246,54 @@ class Bridge(LXMFApp):
         """
         This function handles meshtastic users sending messages to the bridge over the meshtastic network. 
         """
+
+        if config["advanced"]["developing"]:
+            self.mesh.interface.sendText("Sorry, this bridge is currently under maintenance. Try again soon!", from_id, wantAck=True)
+            return
+
         if not message.startswith("/"):
             self.mesh.interface.sendText('Hi!\nThis is a bridge node for LXMF.\nType /info or /help for more information', from_id, wantAck=True)
             return
 
         if message.startswith("/info"):
-            self.mesh.interface.sendText('This bot was made to allow meshtastic users to send LXMF messages; which is kind of like an email system for nerds.', from_id, wantAck=True)
+            self.mesh.interface.sendText('This bot was made to allow meshtastic users to send and receive LXMF messages; which is kind of like an email system for nerds.', from_id, wantAck=True)
+            return
 
         if message.startswith("/help"):
-            self.mesh.interface.sendText('Commands:\n/register <base32 key>, load an existing identity\n/deregister, remove identity\n/send <LXMF id> <message>, send a message to a node', from_id, wantAck=True)
+            self.mesh.interface.sendText('Commands:\n/listen, generate an identity and allow LXMF messages to be sent to you\n/send <LXMF address> <message>, send a message to a node\n/resolve <name>, get an LXMF address from a name\n/advanced, see more commands\n', from_id, wantAck=True)
+            return
+        
+        if message.startswith("/listen"):
+            if user.lxmf_identity is None:
+                user.lxmf_identity = self.meshtastic_user_to_identity(user) # type: ignore
+                user.save()
+            
+            self.mesh.interface.sendText("Successfully registered with identity.", from_id, wantAck=True)
+            return
+        
+        if message.startswith("/advanced"):
+            self.mesh.interface.sendText("Advanced Commands:\n/register <base32 key>, override the provided reticulum identity with a custom one\n/deregister, remove identity and stop receiving messages", from_id, wantAck=True)
+            return
+        
+        if message.startswith("/resolve"):
+            if not message.startswith("/resolve "):
+                self.mesh.interface.sendText("The '/resolve' command requires a username to resolve. See /help.", from_id, wantAck=True)
+                return
+        
+            name = message.split("/resolve ")[-1]
+            users:list[LXMFUser] = LXMFUser.select().where(LXMFUser.name == name)
+
+            if len(users) == 0:
+                self.mesh.interface.sendText(f"Sorry, we couldn't find a match for: '{name}'. Please note that only exact matches are checked.", from_id, wantAck=True)
+                return
+            
+            if len(users) > 1:
+                self.mesh.interface.sendText(f"Sorry, multiple users were found with that name.\nThis is an edge case that is currently being worked on for now.", from_id, wantAck=True)
+                return
+            
+            found_address = base64.b64decode(str(users[0].identity_hash)).hex()
+            self.mesh.interface.sendText(str(found_address), from_id, wantAck=True)
+            return
 
         if message.startswith("/register"):
             try:
@@ -252,6 +312,11 @@ class Bridge(LXMFApp):
         if message.startswith("/deregister"):
             if user.lxmf_identity is None:
                 self.mesh.interface.sendText('No identity to deregister!', from_id, wantAck=True)
+                return
+            else:
+                user.lxmf_identity = None # type: ignore
+                user.save()
+                self.mesh.interface.sendText('deregistered!', from_id, wantAck=True)
                 return
             
         if message.startswith("/send"):
@@ -335,6 +400,9 @@ class Bridge(LXMFApp):
         return self.prv_bytes+self.sig_prv_bytes
 
     def meshtastic_public_to_identity(self, public_key:str):
+
+        # I use the secret here to prevent exposing meshtastic public keys.
+        # It's not strictly necessary, but it feels like the right thing to do
         return RNS.Identity.from_bytes(
             self.create_keys(
                 hashlib.sha256((public_key + str(SECRET)).encode("utf-8")).digest()

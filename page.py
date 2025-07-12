@@ -23,6 +23,14 @@ def format_string(text, target_length):
 
 def create_canvas(meshtastic_interface:StreamInterface, primary_router, routers=[]):
     
+    nodes = meshtastic_interface.nodes
+    assert isinstance(nodes, dict), "interface nodes not loaded?"
+
+    # get nodes that were heard in the last hour
+    active_node_ids = [i for i in nodes if nodes[i].get("lastHeard", 0) > time.time() - 60*60]
+    num_active_nodes = len(active_node_ids)
+    num_total_nodes = len(nodes)
+
     available = []
     for node_id, router in routers.items():
         node = MeshtasticNode.get_or_none(MeshtasticNode.node_id == node_id)
@@ -30,15 +38,18 @@ def create_canvas(meshtastic_interface:StreamInterface, primary_router, routers=
         if node is None:
             continue
 
-        name = f"{format_string(node.long_name, 32)} ({format_string(node.short_name, 4)})"
+        name = f"({format_string(node.short_name, 4)}) {format_string(node.long_name, 32)}"
         dst = str(list(router.delivery_destinations.values())[0].hash.hex())
+        name = f"`[{name}`lxmf@{dst}]"
 
+        online = Paragraph("\\[ONLINE ] ", [BOLD, FOREGROUND_GREEN])
+        offline = Paragraph("\\[OFFLINE] ", [BOLD, FOREGROUND_RED])
+        
         available.append(
             Span(
                 [
-                    Paragraph(name),
-                    Paragraph(" : "),
-                    Paragraph(dst)
+                    online if node_id in active_node_ids else offline,
+                    Paragraph(name, style=[ITALIC]),
                 ],
                 style = [CENTER]
             )
@@ -60,15 +71,14 @@ def create_canvas(meshtastic_interface:StreamInterface, primary_router, routers=
             Br()
         ]
 
-    nodes = meshtastic_interface.nodes
-    
-    assert isinstance(nodes, dict), "interface nodes not loaded?"
+    develop_msg = []
+    if config["advanced"]["developing"]:
+        develop_msg = [
+            Paragraph("THIS BRIDGE IS UNDERGOING ACTIVE MAINTENANCE", [BACKGROUND_RED, FOREGROUND_BLACK]),
+            Paragraph("Please be patient...", [BACKGROUND_RED, FOREGROUND_BLACK, ITALIC])
+        ]
 
-    # Count number of nodes that were heard in the last 15 minutes
-    num_active_nodes = sum([
-        1 for i in nodes if nodes[i].get("lastHeard", 0) > time.time() - 60*15 
-    ])
-    num_total_nodes = len(nodes)
+    
 
     return Micron(
         subnodes=[
@@ -79,11 +89,11 @@ def create_canvas(meshtastic_interface:StreamInterface, primary_router, routers=
                     Header(
                         content="What is this?",
                         subnodes=[
-                            Paragraph(f"This is an experimental 'bridge' between the Meshtastic network in {config['bridge']['location']} and LXM. When running, LXM clients can send messages to the mesh and vise-versa. Message {our_dest} with '/help' to see more details."),
+                            Paragraph(f"This is an experimental 'bridge' between the Meshtastic network in {config['bridge']['location']} and LXM. When running, LXM clients can send messages to the mesh and vise-versa. Message `[`lxmf@{our_dest}] with '/help' to see more details."),
                             Br(),
                             Paragraph("Please note that development is still underway, so bugs are expected.", style=[FOREGROUND_RED]),
                             Br(),
-                        ]
+                        ] + develop_msg
                     ),
                     Br(),
                     Header(
@@ -118,7 +128,7 @@ def create_canvas(meshtastic_interface:StreamInterface, primary_router, routers=
                             ),
                             Hr(),
                             Br(),
-                            Paragraph(f"If you are in {config['bridge']['location']} and want to be added to this list, please direct message this bridge node with /register over in the meshtastic network."),
+                            Paragraph(f"If you are in {config['bridge']['location']} and want to be added to this list, please direct message this bridge node with /listen over in the meshtastic network."),
                             Br(),
                             Br(),
                             Br(),   

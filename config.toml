@@ -33,8 +33,12 @@ name = "Anonymous"
 # can place your message here (can be nothing):
 custom_message = ""
 
+# Set this field to your LXMF address (just the hash portion) for your admin account. 
+# This address will receive additional system messages, and have access to special commands (see /help).
+admin_address = ""
+
 [sanity]
-# Now that you have completed configuring your bridge, change
+# Now that you have successfully completed configuring your bridge, change
 # the following field from 'false' to 'true'.
 i_did_a_good_job = false 
 
@@ -48,3 +52,8 @@ base_cooldown = 10
 # Reticulum identity re-announce timer in seconds. Please don't set this to 
 # something too short (no less than every 10 minutes) otherwise you'll spam the network.  
 announce = 1800
+
+# During development, I like to set the server as 'down for maintenance' so users don't get
+# confused when I'm just testing things.
+# false is the normal operating mode, true switches to 
+developing = false
