@@ -32,3 +32,6 @@ If you already have a bridge running within your local area, I would suggest tha
 4. Run ```python3 main.py``` and copy the delivery destination hash
 5. Message the node (the copied hash) with ```\help``` to get started.
 
+## Donations
+
+If you found this project helpful, then consider donating to my monero address: 42Hw15daCMuBXKEnTjfv6Y79Rt5N5wKxjHBqCD2STLP6fG5ARYr8aK5PEkEFn28boP5w7Ht8MadciB5jBiboM1Xe1JLW9eC

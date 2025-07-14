@@ -105,7 +105,11 @@ class Bridge(LXMFApp):
             del self.routers[str(user.node_id)]
 
         identity = self.meshtastic_user_to_identity(user)
-        router = LXMF.LXMRouter(identity, storagepath=self.storage_path)
+        try:
+            router = LXMF.LXMRouter(identity, storagepath=self.storage_path)
+        except Exception as e:
+            logger.warning(f"Failed to build router for {user.long_name} due to : {e}")
+            return
 
         def send_to_meshtastic_node(lxmessage: LXMF.LXMessage):
             logger.info("Received message from LXMF")
